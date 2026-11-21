@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risks & Operations | gl4b Homelab Docs</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">g14</div>
+      <div class="brand-text">
+        <h1>gl4b Homelab</h1>
+        <span>home.gl4b.xyz</span>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html" class="">Overview & Architecture</a></li>
+      <li><a href="network.html" class="">VLANs & IP Plan</a></li>
+      <li><a href="services.html" class="">Services & Hostnames</a></li>
+      <li><a href="firewall.html" class="">Firewall & Traffic Flows</a></li>
+      <li><a href="operations.html" class="active">Risks & Operations</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div>Internal-Only Architecture</div>
+      <div>Last Updated: Nov 15, 2026</div>
+    </div>
+  </aside>
+  <main class="main-content">
+    <header class="page-header">
+      <div class="badge-row">
+        <span class="badge amber">Risk Register</span>
+        <span class="badge">Disaster Recovery</span>
+        <span class="badge">Action Items</span>
+      </div>
+      <h2>Operational Risks, Mitigations & Roadmap</h2>
+      <p>Documented single points of failure, current compensating controls, deferred architectural upgrades, and pending deployment tasks.</p>
+    </header>
+
+    <h3 class="section-title">Risk Register & Mitigation Matrix</h3>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Identified Risk</th>
+            <th>Operational Impact</th>
+            <th>Current Mitigation</th>
+            <th>Future Upgrade Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Virtualized Router</strong><br>(OPNsense on Proxmox)</td>
+            <td>Proxmox host downtime takes down routing, DHCP, and management access across all VLANs.</td>
+            <td>Crash cart (monitor/keyboard) attached to host; OPNsense set to boot first; recovery laptop with static <code>10.0.20.x</code> IP ready to plug into a Management switch port.</td>
+            <td>Migrate OPNsense to dedicated bare-metal firewall hardware.</td>
+          </tr>
+          <tr>
+            <td><strong>No Proxmox Backup Server</strong></td>
+            <td>Full-image backups only; no block-level deduplication or automated verification.</td>
+            <td>Nightly scheduled <code>vzdump</code> backups to a secondary local disk (retaining 3 copies); manual OPNsense XML config export after every change.</td>
+            <td>Deploy dedicated PBS instance with offsite replication.</td>
+          </tr>
+          <tr>
+            <td><strong>Single Proxmox Host</strong></td>
+            <td>Hardware failure halts all VMs and LXC workloads simultaneously.</td>
+            <td>Secondary Technitium DNS runs on an independent Raspberry Pi to preserve LAN DNS resolution.</td>
+            <td>Add a second cluster node or replicate Authentik onto the Raspberry Pi.</td>
+          </tr>
+          <tr>
+            <td><strong>No Remote VPN</strong></td>
+            <td>Homelab services are unreachable when away from home.</td>
+            <td>Accepted per current security posture (zero open WAN ports).</td>
+            <td>Deploy WireGuard on OPNsense or Tailscale subnet router without opening inbound ports.</td>
+          </tr>
+          <tr>
+            <td><strong>Secret / Token Loss</strong></td>
+            <td>Loss of Cloudflare API token or Authentik secrets halts TLS renewals and SSO logins.</td>
+            <td>Store <code>.env</code> configurations and Cloudflare tokens in a password manager (e.g., self-hosted Vaultwarden).</td>
+            <td>Automated encrypted backup of secrets vault.</td>
+          </tr>
+          <tr>
+            <td><strong>Authentik SSO Outage</strong></td>
+            <td>Forward-auth and OIDC logins fail across protected applications.</td>
+            <td>Local break-glass admin accounts maintained in every app; Jellyfin excluded from forward-auth.</td>
+            <td>High-availability Authentik deployment.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="section-title">Open Action Items</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h3>1. Populate <code>IOT_STREAMERS</code> Alias</h3>
+        <p>Assign static DHCP reservations on VLAN 50 for smart TVs and streaming sticks once online, and add their IPs to the <code>IOT_STREAMERS</code> alias in OPNsense so they can reach Jellyfin (<code>:8096</code>) and Caddy (<code>:443</code>).</p>
+      </div>
+      <div class="card">
+        <h3>2. Camera WAN Egress Policy</h3>
+        <p>Decide whether IoT security cameras on VLAN 50 require internet access at all; blocking camera WAN egress completely and recording locally is recommended for tighter privacy and isolation.</p>
+      </div>
+    </div>
+
+  </main>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

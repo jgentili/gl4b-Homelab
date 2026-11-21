@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VLANs & IP Plan | gl4b Homelab Docs</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">g14</div>
+      <div class="brand-text">
+        <h1>gl4b Homelab</h1>
+        <span>home.gl4b.xyz</span>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html" class="">Overview & Architecture</a></li>
+      <li><a href="network.html" class="active">VLANs & IP Plan</a></li>
+      <li><a href="services.html" class="">Services & Hostnames</a></li>
+      <li><a href="firewall.html" class="">Firewall & Traffic Flows</a></li>
+      <li><a href="operations.html" class="">Risks & Operations</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div>Internal-Only Architecture</div>
+      <div>Last Updated: Nov 15, 2026</div>
+    </div>
+  </aside>
+  <main class="main-content">
+    <header class="page-header">
+      <div class="badge-row">
+        <span class="badge">802.1Q Trunking</span>
+        <span class="badge">RFC1918 Segmented</span>
+      </div>
+      <h2>VLANs & Addressing Plan</h2>
+      <p>Standardized IP allocation scheme across six subnets. On every VLAN, <code>.1</code> is the OPNsense gateway, <code>.2–.49</code> are static/reserved infrastructure assignments, and <code>.100–.250</code> form the DHCP pool.</p>
+    </header>
+
+    <div class="callout">
+      <strong>Switch Tagging Note:</strong> The TP-Link TL-SG108E managed switch can only manage itself on untagged VLAN 1. Consequently, <strong>Management (VLAN 20)</strong> travels untagged on the wire as switch VLAN 1, while VLANs 10, 30, 40, 50, and 60 are 802.1Q tagged.
+    </div>
+
+    <h3 class="section-title">VLAN Segmentation Matrix</h3>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>VLAN ID</th>
+            <th>Name</th>
+            <th>Subnet</th>
+            <th>Resident Infrastructure & Devices</th>
+            <th>Permitted Outbound Reach</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>10</code></td>
+            <td><strong>Services</strong></td>
+            <td><code>10.0.10.0/24</code></td>
+            <td>Technitium DNS (x2), Services Docker VM, Pulse LXC</td>
+            <td>Internet. Pulse &rarr; Proxmox <code>:8006</code>. Uptime Kuma &rarr; monitored service ports only.</td>
+          </tr>
+          <tr>
+            <td><code>20</code></td>
+            <td><strong>Management</strong></td>
+            <td><code>10.0.20.0/24</code></td>
+            <td>Proxmox VE host, Managed Switch, Access Point, OPNsense Web UI</td>
+            <td>Unrestricted (administrative operations and updates).</td>
+          </tr>
+          <tr>
+            <td><code>30</code></td>
+            <td><strong>Trusted LAN</strong></td>
+            <td><code>10.0.30.0/24</code></td>
+            <td>Personal PCs, laptops, phones, Admin PC (<code>10.0.30.50</code>)</td>
+            <td>Internet, DNS, Caddy <code>:443</code>, Jellyfin <code>:8096</code>, all of IoT. Admin PC &rarr; Management, Services &amp; Media admin pages.</td>
+          </tr>
+          <tr>
+            <td><code>40</code></td>
+            <td><strong>Media / DMZ</strong></td>
+            <td><code>10.0.40.0/24</code></td>
+            <td>Caddy Reverse Proxy, Jellyfin LXC, Media Docker VM (ARR stack)</td>
+            <td>Internet, DNS. Caddy &rarr; Services app ports (<code>9000</code>, <code>3001</code>, <code>7575</code>, <code>7655</code>).</td>
+          </tr>
+          <tr>
+            <td><code>50</code></td>
+            <td><strong>IoT</strong></td>
+            <td><code>10.0.50.0/24</code></td>
+            <td>Smart TVs/streamers, cameras, bulbs, smart plugs</td>
+            <td>Internet and DNS only (Port 53 NAT-redirected to <code>10.0.10.2</code>). <code>IOT_STREAMERS</code> &rarr; Jellyfin <code>:8096</code> &amp; Caddy <code>:443</code>.</td>
+          </tr>
+          <tr>
+            <td><code>60</code></td>
+            <td><strong>Guest</strong></td>
+            <td><code>10.0.60.0/24</code></td>
+            <td>Visitors' personal devices</td>
+            <td>Internet and DNS only; AP client isolation enabled.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="section-title">IP Allocation Pattern</h3>
+    <div class="grid-3">
+      <div class="card">
+        <h3><code>10.0.x.1</code> — Gateway</h3>
+        <p>OPNsense virtual interface on each VLAN providing stateful routing, DHCP, and NTP services.</p>
+      </div>
+      <div class="card">
+        <h3><code>10.0.x.2 – .49</code> — Static</h3>
+        <p>Reserved static assignments for hypervisor hosts, switches, APs, LXCs, and Docker VMs.</p>
+      </div>
+      <div class="card">
+        <h3><code>10.0.x.100 – .250</code> — DHCP</h3>
+        <p>Dynamic client pools managed by OPNsense, handing out <code>10.0.10.2</code> &amp; <code>10.0.10.3</code> for DNS and <code>home.gl4b.xyz</code> search domain.</p>
+      </div>
+    </div>
+
+  </main>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

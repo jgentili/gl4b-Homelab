@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firewall & Traffic Flows | gl4b Homelab Docs</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">g14</div>
+      <div class="brand-text">
+        <h1>gl4b Homelab</h1>
+        <span>home.gl4b.xyz</span>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html" class="">Overview & Architecture</a></li>
+      <li><a href="network.html" class="">VLANs & IP Plan</a></li>
+      <li><a href="services.html" class="">Services & Hostnames</a></li>
+      <li><a href="firewall.html" class="active">Firewall & Traffic Flows</a></li>
+      <li><a href="operations.html" class="">Risks & Operations</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div>Internal-Only Architecture</div>
+      <div>Last Updated: Nov 15, 2026</div>
+    </div>
+  </aside>
+  <main class="main-content">
+    <header class="page-header">
+      <div class="badge-row">
+        <span class="badge rose">Default Deny Inter-VLAN</span>
+        <span class="badge">Top-Down Evaluation</span>
+        <span class="badge">mDNS Repeater</span>
+      </div>
+      <h2>Firewall Policy & Traffic Flows</h2>
+      <p>OPNsense evaluates interface rules top-down (first match wins). Only four cross-VLAN service pathways are permitted; all other inter-VLAN traffic is dropped.</p>
+    </header>
+
+    <div class="callout warning">
+      <strong>Global Baseline Rule:</strong> On every interface except <strong>Management (VLAN 20)</strong>, Rule #0 blocks <code>any &rarr; This Firewall</code> except <code>UDP 67/68</code> (DHCP) and <code>UDP 123</code> (NTP). If IPv6 is enabled by the ISP, matching IPv6 block rules must be added or IPv6 disabled on VLANs 10, 40, 50, and 60.
+    </div>
+
+    <h3 class="section-title">Cross-VLAN Flow Diagram</h3>
+    <div class="diagram-box">
+      <div class="mermaid">
+flowchart LR
+    V10["VLAN 10: Services<br/>10.0.10.0/24"]
+    V20["VLAN 20: Management<br/>10.0.20.0/24"]
+    V30["VLAN 30: Trusted LAN<br/>10.0.30.0/24"]
+    V40["VLAN 40: Media/DMZ<br/>10.0.40.0/24"]
+    V50["VLAN 50: IoT<br/>10.0.50.0/24"]
+
+    V10 -->|"Pulse &rarr; Proxmox :8006"| V20
+    V30 -->|"HTTPS :443 & Jellyfin :8096"| V40
+    V40 -->|"Caddy &rarr; Auth, Kuma, Homarr, Pulse"| V10
+    V50 -->|"IOT_STREAMERS &rarr; Jellyfin :8096 & Caddy :443"| V40
+    V30 -.->|"mDNS + Casting & Control"| V50
+    V30 -.->|"ADMIN_PC (10.0.30.50)"| V20
+      </div>
+    </div>
+
+    <h3 class="section-title">Firewall Aliases</h3>
+    <div class="grid-3">
+      <div class="card">
+        <h3><code>RFC1918</code></h3>
+        <p><code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code></p>
+      </div>
+      <div class="card">
+        <h3><code>DNS_SERVERS</code></h3>
+        <p><code>10.0.10.2</code> (Primary LXC), <code>10.0.10.3</code> (Secondary Pi)</p>
+      </div>
+      <div class="card">
+        <h3><code>ADMIN_PC</code> &amp; <code>SERVICES_VM</code></h3>
+        <p>Admin: <code>10.0.30.50</code><br>Services VM: <code>10.0.10.12</code></p>
+      </div>
+    </div>
+
+    <h3 class="section-title">Interface Rule Sets (Top-Down Order)</h3>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Interface</th>
+            <th>Ordered Rules (Pass unless marked Block)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>10 — Services</strong><br><code>10.0.10.0/24</code></td>
+            <td>
+              1. <code>10.0.10.13</code> (Pulse) &rarr; <code>10.0.20.10</code> TCP <code>8006</code><br>
+              2. <code>SERVICES_VM</code> &rarr; <code>any</code> TCP <code>8006, 8096, 7655, 9000, 443</code> (Uptime Kuma checks)<br>
+              3. <code>any</code> &rarr; <code>DNS_SERVERS</code> UDP/TCP <code>53</code><br>
+              4. <strong>BLOCK</strong> <code>any</code> &rarr; <code>RFC1918</code><br>
+              5. <code>any</code> &rarr; <code>any</code> (Internet)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>20 — Management</strong><br><code>10.0.20.0/24</code></td>
+            <td>
+              1. <code>any</code> &rarr; <code>any</code> (Full administrative reach)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>30 — Trusted LAN</strong><br><code>10.0.30.0/24</code></td>
+            <td>
+              1. <code>any</code> &rarr; <code>DNS_SERVERS</code> UDP/TCP <code>53</code><br>
+              2. <code>any</code> &rarr; <code>10.0.40.10</code> TCP <code>443</code> (Caddy)<br>
+              3. <code>any</code> &rarr; <code>10.0.40.20</code> TCP <code>8096</code> (Jellyfin)<br>
+              4. <code>any</code> &rarr; <code>10.0.50.0/24</code> <code>any</code> (IoT control &amp; casting via <code>os-mdns-repeater</code>)<br>
+              5. <code>ADMIN_PC</code> &rarr; <code>10.0.20.0/24</code> <code>any</code> (Management subnet)<br>
+              6. <code>ADMIN_PC</code> &rarr; <code>10.0.10.0/24, 10.0.40.0/24</code> <code>any</code> (Admin UIs)<br>
+              7. <strong>BLOCK</strong> <code>any</code> &rarr; <code>RFC1918</code><br>
+              8. <code>any</code> &rarr; <code>any</code> (Internet)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>40 — Media / DMZ</strong><br><code>10.0.40.0/24</code></td>
+            <td>
+              1. <code>any</code> &rarr; <code>DNS_SERVERS</code> UDP/TCP <code>53</code><br>
+              2. <code>10.0.40.10</code> (Caddy) &rarr; <code>SERVICES_VM</code> TCP <code>9000, 3001, 7575</code><br>
+              3. <code>10.0.40.10</code> (Caddy) &rarr; <code>10.0.10.13</code> TCP <code>7655</code> (Pulse)<br>
+              4. <strong>BLOCK</strong> <code>any</code> &rarr; <code>RFC1918</code><br>
+              5. <code>any</code> &rarr; <code>any</code> (Internet)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>50 — IoT</strong><br><code>10.0.50.0/24</code></td>
+            <td>
+              1. <code>any</code> &rarr; <code>DNS_SERVERS</code> <code>53</code> (+ NAT port-forward redirecting all other port-53 queries to <code>10.0.10.2</code>)<br>
+              2. <code>IOT_STREAMERS</code> &rarr; <code>10.0.40.20</code> TCP <code>8096</code> &amp; <code>10.0.40.10</code> TCP <code>443</code><br>
+              3. <strong>BLOCK</strong> <code>any</code> &rarr; <code>RFC1918</code><br>
+              4. <strong>BLOCK</strong> TCP <code>853</code> (DoT) &amp; known DoH endpoints<br>
+              5. <code>any</code> &rarr; <code>any</code> (Internet)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>60 — Guest</strong><br><code>10.0.60.0/24</code></td>
+            <td>
+              1. <code>any</code> &rarr; <code>DNS_SERVERS</code> UDP/TCP <code>53</code><br>
+              2. <strong>BLOCK</strong> <code>any</code> &rarr; <code>RFC1918</code><br>
+              3. <code>any</code> &rarr; <code>any</code> (Internet)
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

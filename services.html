@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Services & Hostnames | gl4b Homelab Docs</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">g14</div>
+      <div class="brand-text">
+        <h1>gl4b Homelab</h1>
+        <span>home.gl4b.xyz</span>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html" class="">Overview & Architecture</a></li>
+      <li><a href="network.html" class="">VLANs & IP Plan</a></li>
+      <li><a href="services.html" class="active">Services & Hostnames</a></li>
+      <li><a href="firewall.html" class="">Firewall & Traffic Flows</a></li>
+      <li><a href="operations.html" class="">Risks & Operations</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div>Internal-Only Architecture</div>
+      <div>Last Updated: Nov 15, 2026</div>
+    </div>
+  </aside>
+  <main class="main-content">
+    <header class="page-header">
+      <div class="badge-row">
+        <span class="badge">Split-Horizon DNS</span>
+        <span class="badge emerald">Authentik SSO</span>
+        <span class="badge">Wildcard TLS</span>
+      </div>
+      <h2>Services, Hostnames & Roles</h2>
+      <p>Complete inventory of network appliances, Proxmox VMs/LXCs, and Docker workloads. VM/LXC IDs follow the convention of matching the host's last two IP digits (e.g., <code>10.0.40.20</code> &rarr; ID <code>420</code>).</p>
+    </header>
+
+    <div class="filter-bar">
+      <input type="text" class="search-input" data-table-filter="services-table" placeholder="Filter by service, VLAN, IP, port, or hostname...">
+    </div>
+
+    <div class="table-container">
+      <table id="services-table">
+        <thead>
+          <tr>
+            <th>Service / Host</th>
+            <th>Runtime / ID</th>
+            <th>VLAN</th>
+            <th>IP Address</th>
+            <th>Port(s)</th>
+            <th>Internal Hostname</th>
+            <th>Auth Method</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>OPNsense</strong></td>
+            <td>VM (<code>100</code>)</td>
+            <td>All (<code>20</code> UI)</td>
+            <td><code>10.0.x.1</code></td>
+            <td><code>443</code></td>
+            <td><code>opnsense.home.gl4b.xyz</code></td>
+            <td>Local Admin (VLAN 20 only)</td>
+          </tr>
+          <tr>
+            <td><strong>Proxmox VE</strong></td>
+            <td>Bare-Metal Host</td>
+            <td><code>20</code></td>
+            <td><code>10.0.20.10</code></td>
+            <td><code>8006</code></td>
+            <td><code>proxmox.home.gl4b.xyz</code></td>
+            <td>Authentik OIDC + 2FA / root@pam</td>
+          </tr>
+          <tr>
+            <td><strong>Managed Switch</strong></td>
+            <td>TP-Link TL-SG108E</td>
+            <td><code>20</code> (Untagged 1)</td>
+            <td><code>10.0.20.2</code></td>
+            <td><code>80</code></td>
+            <td>—</td>
+            <td>Local Admin</td>
+          </tr>
+          <tr>
+            <td><strong>Access Point</strong></td>
+            <td>VLAN-Capable AP</td>
+            <td><code>20</code></td>
+            <td><code>10.0.20.3</code></td>
+            <td><code>443</code></td>
+            <td>—</td>
+            <td>Local Admin</td>
+          </tr>
+          <tr>
+            <td><strong>Admin PC</strong></td>
+            <td>DHCP Reservation</td>
+            <td><code>30</code></td>
+            <td><code>10.0.30.50</code></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Technitium Primary</strong></td>
+            <td>LXC (<code>102</code>)</td>
+            <td><code>10</code></td>
+            <td><code>10.0.10.2</code></td>
+            <td><code>53</code>, <code>5380</code></td>
+            <td><code>dns1.home.gl4b.xyz</code></td>
+            <td>Local Admin</td>
+          </tr>
+          <tr>
+            <td><strong>Technitium Secondary</strong></td>
+            <td>Raspberry Pi</td>
+            <td><code>10</code></td>
+            <td><code>10.0.10.3</code></td>
+            <td><code>53</code>, <code>5380</code></td>
+            <td><code>dns2.home.gl4b.xyz</code></td>
+            <td>Local Admin</td>
+          </tr>
+          <tr>
+            <td><strong>Services Docker VM</strong></td>
+            <td>VM (<code>112</code>)</td>
+            <td><code>10</code></td>
+            <td><code>10.0.10.12</code></td>
+            <td>—</td>
+            <td>—</td>
+            <td>SSH Key</td>
+          </tr>
+          <tr>
+            <td><strong>Authentik</strong></td>
+            <td>Docker (VM 112)</td>
+            <td><code>10</code></td>
+            <td><code>10.0.10.12</code></td>
+            <td><code>9000</code></td>
+            <td><code>auth.home.gl4b.xyz</code></td>
+            <td>Identity Provider (IdP)</td>
+          </tr>
+          <tr>
+            <td><strong>Uptime Kuma</strong></td>
+            <td>Docker (VM 112)</td>
+            <td><code>10</code></td>
+            <td><code>10.0.10.12</code></td>
+            <td><code>3001</code></td>
+            <td><code>status.home.gl4b.xyz</code></td>
+            <td>Caddy Forward-Auth</td>
+          </tr>
+          <tr>
+            <td><strong>Homarr</strong></td>
+            <td>Docker (VM 112)</td>
+            <td><code>10</code></td>
+            <td><code>10.0.10.12</code></td>
+            <td><code>7575</code></td>
+            <td><code>home.gl4b.xyz</code><br><code>homarr.home.gl4b.xyz</code></td>
+            <td>Authentik OIDC</td>
+          </tr>
+          <tr>
+            <td><strong>Pulse</strong></td>
+            <td>LXC (<code>113</code>)</td>
+            <td><code>10</code></td>
+            <td><code>10.0.10.13</code></td>
+            <td><code>7655</code></td>
+            <td><code>pulse.home.gl4b.xyz</code></td>
+            <td>Caddy Forward-Auth</td>
+          </tr>
+          <tr>
+            <td><strong>Caddy Proxy</strong></td>
+            <td>LXC (<code>410</code>)</td>
+            <td><code>40</code></td>
+            <td><code>10.0.40.10</code></td>
+            <td><code>443</code></td>
+            <td><code>*.home.gl4b.xyz</code></td>
+            <td>TLS Termination &amp; Outpost</td>
+          </tr>
+          <tr>
+            <td><strong>Jellyfin</strong></td>
+            <td>Unprivileged LXC (<code>420</code>)</td>
+            <td><code>40</code></td>
+            <td><code>10.0.40.20</code></td>
+            <td><code>8096</code></td>
+            <td><code>jellyfin.home.gl4b.xyz</code></td>
+            <td>Authentik SSO Plugin (No Forward-Auth)</td>
+          </tr>
+          <tr>
+            <td><strong>Media Docker VM</strong></td>
+            <td>VM (<code>430</code>)</td>
+            <td><code>40</code></td>
+            <td><code>10.0.40.30</code></td>
+            <td>Per App</td>
+            <td><code>sonarr.home.gl4b.xyz</code><br><code>radarr.home.gl4b.xyz</code><br><code>prowlarr.home.gl4b.xyz</code></td>
+            <td>Caddy Forward-Auth / App Auth</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="section-title">Service Responsibilities & Notes</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Routing & DNS Layer</h3>
+        <ul>
+          <li><strong>OPNsense (Boots First):</strong> Stateful firewall, DHCP, and NTP server. Unbound DNS is disabled so port 53 remains clear. Config exported after every change.</li>
+          <li><strong>Technitium DNS Pair:</strong> Authoritative split-horizon server for <code>home.gl4b.xyz</code> with ad/tracker blocklists. Only <code>proxmox</code> and the <code>*.home.gl4b.xyz</code> wildcard require A records; AXFR zone transfers are restricted strictly to the secondary Raspberry Pi.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Edge Proxy & Authentication</h3>
+        <ul>
+          <li><strong>Caddy (VLAN 40):</strong> Sole HTTPS ingress for <code>*.home.gl4b.xyz</code> using a Let's Encrypt wildcard certificate via Cloudflare DNS-01 challenge.</li>
+          <li><strong>Authentik SSO:</strong> Operates as an OIDC provider for Proxmox, Homarr, and Jellyfin, and as a Caddy forward-auth outpost for Uptime Kuma and Pulse. Jellyfin bypasses forward-auth so native TV/mobile clients can authenticate cleanly.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Media Stack (VLAN 40)</h3>
+        <ul>
+          <li><strong>Jellyfin (Unprivileged LXC):</strong> Intel iGPU passed through via a single <code>dev0:</code> mapping for QuickSync transcoding; media dataset bind-mounted read-only.</li>
+          <li><strong>Media Docker VM:</strong> Runs Sonarr, Radarr, Prowlarr, and download client routed through a Gluetun VPN container, sharing storage with Jellyfin.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Observability & Dashboard</h3>
+        <ul>
+          <li><strong>Uptime Kuma:</strong> Polls service ports and URLs every 60 seconds and sends alerts via ntfy/email.</li>
+          <li><strong>Pulse:</strong> Monitors Proxmox node, VM/LXC, storage, and backup health using a read-only <code>PVEAuditor</code> API token.</li>
+          <li><strong>Homarr:</strong> Central landing dashboard aggregating status widgets and quick links.</li>
+        </ul>
+      </div>
+    </div>
+
+  </main>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

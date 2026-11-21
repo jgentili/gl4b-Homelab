@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overview & Architecture | gl4b Homelab Docs</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">g14</div>
+      <div class="brand-text">
+        <h1>gl4b Homelab</h1>
+        <span>home.gl4b.xyz</span>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">Overview & Architecture</a></li>
+      <li><a href="network.html" class="">VLANs & IP Plan</a></li>
+      <li><a href="services.html" class="">Services & Hostnames</a></li>
+      <li><a href="firewall.html" class="">Firewall & Traffic Flows</a></li>
+      <li><a href="operations.html" class="">Risks & Operations</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div>Internal-Only Architecture</div>
+      <div>Last Updated: Nov 15, 2026</div>
+    </div>
+  </aside>
+  <main class="main-content">
+    <header class="page-header">
+      <div class="badge-row">
+        <span class="badge">Proxmox VE</span>
+        <span class="badge emerald">Internal-Only (Zero WAN Ports)</span>
+        <span class="badge">6 Segmented VLANs</span>
+        <span class="badge amber">Let's Encrypt DNS-01</span>
+      </div>
+      <h2>gl4b Homelab Architecture</h2>
+      <p>Single-host Proxmox VE virtualization platform running OPNsense routing, split-horizon Technitium DNS, Authentik SSO, Caddy reverse proxy, and containerized media/monitoring stacks across six isolated VLANs under <code>home.gl4b.xyz</code>.</p>
+    </header>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>Zero Public Exposure</h3>
+        <p>No inbound ports are opened to the internet and remote VPN access is currently deferred. All services resolve strictly on the internal LAN via split-horizon DNS with valid Let's Encrypt TLS certificates.</p>
+      </div>
+      <div class="card">
+        <h3>Redundant Local DNS</h3>
+        <p>Primary Technitium DNS runs as an LXC on Proxmox (<code>10.0.10.2</code>) with secondary AXFR replication to a physical Raspberry Pi (<code>10.0.10.3</code>), keeping name resolution alive during host maintenance.</p>
+      </div>
+      <div class="card">
+        <h3>Strict VLAN Isolation</h3>
+        <p>Every Docker VM lives on a single VLAN without multi-homing. Cross-VLAN traffic is denied by default in OPNsense, permitting only four explicit service pathways.</p>
+      </div>
+    </div>
+
+    <h3 class="section-title">Architectural Decisions & Hardware Baseline</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Core Design Decisions</h3>
+        <ul>
+          <li><strong>Domain & Certificates:</strong> <code>gl4b.xyz</code> is registered at Namecheap with DNS hosted on Cloudflare, enabling automated DNS-01 challenges for Caddy wildcard certs (<code>*.home.gl4b.xyz</code>) and Proxmox ACME.</li>
+          <li><strong>Single-VLAN VMs:</strong> Services Docker VM resides strictly on VLAN 10; Media Docker VM resides strictly on VLAN 40. No VM bridges multiple VLANs.</li>
+          <li><strong>Backup Strategy:</strong> Dedicated Proxmox Backup Server (PBS) is deferred in favor of scheduled nightly <code>vzdump</code> full-image backups to a secondary local disk (3 copies retained).</li>
+          <li><strong>Break-Glass Access:</strong> Every Authentik-protected app retains a local admin account to prevent lockout during SSO outages.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Hardware Assumptions</h3>
+        <ul>
+          <li><strong>Proxmox Host:</strong> Intel CPU with integrated GPU (QuickSync) passed through to Jellyfin for hardware transcoding.</li>
+          <li><strong>Host NICs:</strong> Dual network interfaces — one dedicated WAN uplink and one 802.1Q VLAN trunk to the switch.</li>
+          <li><strong>Switching & Wireless:</strong> TP-Link TL-SG108E managed switch (VLAN 20 carried untagged as switch VLAN 1) paired with a VLAN-capable Access Point.</li>
+          <li><strong>Out-of-Band DNS Node:</strong> Dedicated Raspberry Pi on VLAN 10 running secondary Technitium DNS.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="section-title">High-Level Topology</h3>
+    <div class="diagram-box">
+      <div class="mermaid">
+flowchart TD
+    Internet((Internet)) --- OPN["OPNsense Router & Firewall<br/>Gateway .1 on all VLANs"]
+    OPN --- V10["VLAN 10: Services<br/>10.0.10.0/24<br/>DNS, Authentik, Uptime Kuma, Homarr, Pulse"]
+    OPN --- V20["VLAN 20: Management<br/>10.0.20.0/24<br/>Proxmox VE, TL-SG108E Switch, AP"]
+    OPN --- V30["VLAN 30: Trusted LAN<br/>10.0.30.0/24<br/>PCs, Laptops, Phones, Admin PC"]
+    OPN --- V40["VLAN 40: Media / DMZ<br/>10.0.40.0/24<br/>Caddy Proxy, Jellyfin, ARR Stack"]
+    OPN --- V50["VLAN 50: IoT<br/>10.0.50.0/24<br/>Smart TVs, Cameras, Bulbs, Plugs"]
+    OPN --- V60["VLAN 60: Guest<br/>10.0.60.0/24<br/>Visitor Devices (Client Isolation)"]
+      </div>
+    </div>
+
+  </main>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>
